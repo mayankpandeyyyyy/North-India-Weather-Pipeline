@@ -1,0 +1,6 @@
+bronze/
+silver_weather/
+gold_weather/
+__pycache__/
+*.json
+.DS_Store
