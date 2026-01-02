@@ -1,70 +1,67 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 import os
 
-# Set Page Config
-st.set_page_config(page_title="North India Weather Portal", layout="wide")
-
-# Navigation logic
-if 'view' not in st.session_state:
-    st.session_state.view = 'map'
-if 'selected_state' not in st.session_state:
-    st.session_state.selected_state = None
-
-def select_state(name):
-    st.session_state.selected_state = name
-    st.session_state.view = 'table'
-
-def reset_to_home():
-    st.session_state.view = 'map'
-    st.session_state.selected_state = None
-
-# Sidebar with your GitHub Link
-with st.sidebar:
-    st.title("Project Info")
-    st.info("Developed by Mayank Pandey")
-    st.markdown("[🔗 View GitHub Repository](https://github.com/mayankpandeyyyyy/North-India-Weather-Pipeline)")
-    st.write("---")
-    st.write("**Architecture:** Medallion (Bronze/Silver/Gold)")
+st.set_page_config(page_title="North India Weather Intelligence", layout="wide")
 
 if os.path.exists("gold_weather"):
     df = pd.read_parquet("gold_weather")
-    
-    # --- PAGE 1: STATE SELECTION VIEW ---
-    if st.session_state.view == 'map':
-        st.markdown("<h1 style='text-align: center;'>North India Weather Data</h1>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align: center;'>Select a state to view local weather data</h3>", unsafe_allow_html=True)
-        st.write("---")
 
-        northern_states = ["Uttar Pradesh", "Punjab", "Haryana", "Himachal", "Uttarakhand"]
-        
-        cols = st.columns(len(northern_states))
-        for i, state in enumerate(northern_states):
-            with cols[i]:
-                if st.button(state, use_container_width=True):
-                    select_state(state)
-        
-        st.markdown("---")
-        st.info("Select a state button above to see the processed data from the Gold Layer.")
+    # --- FEATURE ENGINEERING ---
+    # Calculating Logistics Risk and Energy Load on the fly
+    def analyze_impact(row):
+        if row['Humidity'] > 80 and row['Temperature_C'] < 12:
+            return "⚠️ High Fog Risk (Transport Delay)"
+        elif row['Temperature_C'] > 30:
+            return "⚡ High Cooling Demand"
+        elif row['Temperature_C'] < 8:
+            return "🔥 High Heating Demand"
+        else:
+            return "✅ Optimal Conditions"
 
-    # --- PAGE 2: SEQUENTIAL TABLE VIEW ---
-    elif st.session_state.view == 'table':
-        state_name = st.session_state.selected_state
+    df['Business_Impact'] = df.apply(analyze_impact, axis=1)
+
+    st.title("🏙️ North India Weather Intelligence Engine")
+    st.markdown("### Translating Real-time Meteorological Data into Actionable Business Insights")
+
+    # --- KPI ROW ---
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1.metric("Total Cities Monitored", len(df))
+    kpi2.metric("Avg Regional Temp", f"{round(df['Temperature_C'].mean(), 1)}°C")
+    kpi3.metric("Critical Alerts", len(df[df['Business_Impact'].str.contains("⚠️")]))
+    kpi4.metric("Data Pipeline Status", "Stable")
+
+    st.divider()
+
+    # --- INTERACTIVE ANALYTICS ---
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.subheader("Comparison Filters")
+        selected_states = st.multiselect("Select States:", df['State'].unique(), default=df['State'].unique())
+        selected_impact = st.multiselect("Impact Category:", df['Business_Impact'].unique(), default=df['Business_Impact'].unique())
         
-        if st.button("⬅ Back to Selection"):
-            reset_to_home()
-            st.rerun()
+        filtered_df = df[(df['State'].isin(selected_states)) & (df['Business_Impact'].isin(selected_impact))]
         
-        st.title(f"Weather Report: {state_name}")
-        
-        # Filter and clean data
-        state_df = df[df['State'] == state_name][['City', 'Temperature_C', 'Humidity', 'Wind_Speed_Kmph']]
-        
-        # Reset index to make it sequential starting from 1
-        state_df = state_df.sort_values("Temperature_C", ascending=False).reset_index(drop=True)
-        state_df.index = state_df.index + 1
-        
-        st.table(state_df)
+        st.write(f"Showing **{len(filtered_df)}** results")
+        st.dataframe(filtered_df[['City', 'Temperature_C', 'Business_Impact']], use_container_width=True, hide_index=True)
+
+    with col2:
+        st.subheader("State-wise Temperature & Humidity Distribution")
+        # Scatter plot to show clusters
+        fig = px.scatter(filtered_df, x="Temperature_C", y="Humidity", color="State", 
+                         size="Wind_Speed_Kmph", hover_name="City",
+                         title="Climatic Clustering (Size = Wind Speed)")
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.divider()
+
+    # --- REGIONAL RISK BAR CHART ---
+    st.subheader("Regional Logistics & Energy Risk Profile")
+    fig_bar = px.bar(filtered_df, x="State", color="Business_Impact", 
+                     title="Business Impact Events by State", barmode='group')
+    st.plotly_chart(fig_bar, use_container_width=True)
 
 else:
-    st.error("Data source not found. Please run your pipeline scripts (01 to 03) first.")
+    st.error("Gold Data not found. Run orchestrator.py first.")
