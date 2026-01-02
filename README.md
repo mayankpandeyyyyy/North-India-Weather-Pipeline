@@ -1,36 +1,27 @@
-# North India Weather Pipeline: Medallion Architecture
+# North India Weather Intelligence Pipeline 
 
-An automated data engineering pipeline designed to ingest, process, and visualize real-time weather metrics for Northern Indian states including Uttar Pradesh, Punjab, Haryana, Himachal, and Uttarakhand. This project implements a modular Medallion Architecture to maintain data integrity from raw ingestion to final insights.
+### The Project Goal
+I built this project to move beyond simple "weather fetching." My goal was to take live API data from 30+ cities across North India (UP, Punjab, Uttarakhand, etc.) and translate those raw numbers into something useful for local businesses—like predicting when fog will hit logistics or when the power grid in the hills will face high demand.
 
+## How it works (Medallion Architecture)
+I followed the Medallion framework to keep the data clean and reliable:
+- **Bronze (The Raw Stuff):** I fetch JSON data from OpenWeatherMap and store it exactly as it is. No changes, just a backup of the truth.
+- **Silver (The Clean-up):** I use PySpark to enforce a strict schema. This is where I convert Kelvin to Celsius and drop any "junk" data that might break the app.
+- **Gold (The Logic):** This is the final layer where I run my business logic. I aggregate the data into Parquet files that are fast enough for the dashboard to read instantly.
 
+## What makes this "Intelligence" and not just "Data"?
+Instead of just showing "Temperature: 6°C," I added a feature engineering layer that calculates:
+- **Logistics Risk:** If humidity is high and temps are low, the dashboard flags a Fog Warning. This is critical for transport companies in the plains.
+- **Grid Load Alerts:** Based on extreme temps, I categorize cities into "High Heating" or "High Cooling" zones to simulate how a power utility company would monitor the grid.
+- **Hill Station Safety:** Since I live in Nainital, I added specific logic for cold-weather safety (like Black Ice warnings) that generic apps usually miss.
 
-## Data Strategy (Medallion Framework)
+## Tech I Used
+- **Big Data:** PySpark (for the heavy lifting in transformations)
+- **Engine:** Python 3.12 & Pandas
+- **UI:** Streamlit & Plotly (for the interactive bits)
+- **Infrastructure:** Ubuntu on WSL
 
-The pipeline is organized into three distinct layers to ensure scalability and data quality:
-
-- Bronze (Raw): Ingests live JSON payloads from the OpenWeatherMap API. Data is stored in its original form to allow for historical reprocessing.
-- Silver (Cleaned): Leverages PySpark to handle schema enforcement, type casting (e.g., converting Kelvin to Celsius), and removing null values or outliers.
-- Gold (Curated): Aggregates the cleaned data into optimized Parquet files. This layer is structured specifically for the Streamlit dashboard to ensure sub-second query performance.
-
-## Tech Stack and Environment
-
-- Infrastructure: Ubuntu on WSL (Windows Subsystem for Linux)
-- Processing: Apache Spark (PySpark) for ETL operations
-- Language: Python 3.12
-- Frontend: Streamlit for the interactive data portal
-- Storage: Parquet (Columnar storage for efficient read operations)
-
-## System Components
-
-1. 01_ingest.py: Handles API communication and raw storage in the Bronze layer.
-2. 02_transform.py: The Spark engine that converts Raw to Silver to Gold.
-3. 04_dashboard.py: A lightweight UI providing state-specific meteorological reports.
-4. orchestrator.py: A central script to trigger the entire pipeline end-to-end.
-
-## Dashboard Access
-
-The dashboard allows users to select specific states to view a sequential, cleaned table of local weather data, including Temperature, Humidity, and Wind Speeds.
-
----
-
-Note: To run this project locally, you will need an OpenWeatherMap API key and a configured Spark environment on WSL.
+## To get it running
+1. Throw your OpenWeatherMap API key into `01_ingest.py`.
+2. Run `python3 orchestrator.py` to trigger the whole flow.
+3. Launch the UI: `streamlit run 04_dashboard.py`.
