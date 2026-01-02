@@ -13,7 +13,6 @@ I followed the Medallion framework to keep the data clean and reliable:
 Instead of just showing "Temperature: 6°C," I added a feature engineering layer that calculates:
 - **Logistics Risk:** If humidity is high and temps are low, the dashboard flags a Fog Warning. This is critical for transport companies in the plains.
 - **Grid Load Alerts:** Based on extreme temps, I categorize cities into "High Heating" or "High Cooling" zones to simulate how a power utility company would monitor the grid.
-- **Hill Station Safety:** Since I live in Nainital, I added specific logic for cold-weather safety (like Black Ice warnings) that generic apps usually miss.
 
 ## Tech I Used
 - **Big Data:** PySpark (for the heavy lifting in transformations)
